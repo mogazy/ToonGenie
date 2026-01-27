@@ -1,1137 +1,263 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رفيقتك اللطيفة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Tajawal:wght@400;700&display=swap');
 
-// Tailwind CSS is assumed to be available
-
-// Translations object for multiple languages
-const translations = {
-    ar: {
-        appName: "ImageGenPro",
-        darkModeSwitch: "تبديل الوضع",
-        instructionsButton: "تعليمات",
-        simpleTab: "بسيط",
-        advancedTab: "متقدم",
-        characterCreationTab: "صنع شخصية",
-        imageGenerated: "الصور المولدة",
-        generatingImage: "جاري توليد الصورة/الصور...",
-        generationFailed: "فشل في توليد الصورة. الرجاء المحاولة مرة أخرى.",
-        connectionError: "حدث خطأ أثناء الاتصال بالخادم أو أثناء الترجمة. الرجاء التحقق من اتصالك بالإنترنت.",
-        noImagesYet: "سيتم عرض الصورة/الصور التي تم إنشاؤها هنا.",
-        downloadImage: (index) => `تحميل الصورة ${index}`,
-        instructionsTitle: "التعليمات",
-        instructionsSimpleTab: "تبويب \"بسيط\": استخدمه لتوليد الصور بسرعة. أدخل وصف الصورة، أسلوبها، والكلمات السلبية (ما لا تريده في الصورة).",
-        instructionsAdvancedTab: "تبويب \"متقدم\": يوفر خيارات أكثر تفصيلاً. يمكنك وصف الشخصية والخلفية وزاوية التصوير واللون السائد.",
-        instructionsCharacterCreationTab: "تبويب \"صنع شخصية\": أنشئ شخصيات مخصصة بصفاتها الفريدة. امنحها اسمًا مستعارًا وصفًا.",
-        instructionsCharacterCall: "استدعاء الشخصيات: في تبويبي \"بسيط\" و \"متقدم\"، يمكنك استدعاء شخصية محفوظة بكتابة @اسم_الشخصية في حقل الوصف. سيتم استبدال الاسم بصفات الشخصية المحفوظة تلقائيًا عند توليد الصورة.",
-        instructionsDarkMode: "الوضع المظلم/الفاتح: استخدم الزر في الزاوية العلوية اليمنى لتبديل مظهر الموقع.",
-        instructionsNumImages: "تحديد عدد الصور: يمكنك الآن اختيار عدد الصور التي سيتم توليدها (صورة واحدة، صورتان، أربع صور) من القائمة المنسدلة في تبويبي \"بسيط\" و \"متقدم\".",
-        instructionsDownload: "تحميل الصور: بعد توليد الصور، سيظهر زر \"تحميل الصورة\" أسفل كل صورة، يمكنك النقر عليه لحفظ الصورة على جهازك.",
-        instructionsLanguage: "تبديل اللغة: استخدم هذه القائمة لتبديل لغة واجهة المستخدم.",
-        instructionsPromptEnhancement: "تحسين الوصف: استخدم الزر ✨ تحسين الوصف ✨ بجوار حقول الوصف للحصول على اقتراحات من الذكاء الاصطناعي لجعل وصفك أكثر تفصيلاً وإبداعًا.",
-        instructionsCaptioning: "توليد وصف الصورة: بعد توليد الصور، انقر على زر ✨ توليد وصف ✨ أسفل كل صورة للحصول على وصف نصي مفصل أو تعليق إبداعي للصورة من الذكاء الاصطناعي.",
-        // Simple Tab
-        simpleDescLabel: "وصف الصورة",
-        simpleDescPlaceholder: "مثل: قط لطيف يلعب بكرة صوف في حديقة خضراء مشمسة",
-        simpleStyleLabel: "أسلوب الصورة",
-        simpleStylePlaceholder: "مثل: رسم زيتي، فن ديجيتال، واقعي جداً",
-        simpleNegativePromptLabel: "كلمات مضادة/سلبية (أشياء لا تريدها في الصورة)",
-        simpleNegativePromptPlaceholder: "مثل: مشوشة، باهتة، أيادي إضافية",
-        generateButton: "توليد الصورة",
-        generatingButton: "جاري التوليد...",
-        numberOfImagesLabel: "عدد الصور",
-        // Advanced Tab
-        advancedCharacterDescLabel: "وصف الشخصية",
-        advancedCharacterDescPlaceholder: "مثال: محارب شجاع ذو درع ذهبي وشعر طويل",
-        generateRandomCharacter: "توليد شخصية عشوائية",
-        advancedBackgroundDescLabel: "وصف خلفية الصورة",
-        advancedBackgroundDescPlaceholder: "مثال: غابة قديمة ذات أشجار ضخمة وضباب كثيف",
-        generateRandomBackground: "توليد وصف خلفية",
-        advancedAngleDescLabel: "وصف زاوية التصوير أو زاوية الصورة",
-        advancedAngleDescPlaceholder: "مثال: لقطة مقربة، زاوية واسعة، من الأسفل",
-        advancedStyleLabel: "أسلوب الصورة",
-        advancedStylePlaceholder: "مثال: فن مفهومي، فن معاصر، رسم رقمي",
-        advancedDominantColorLabel: "اللون السائد في الصورة",
-        advancedDominantColorPlaceholder: "مثال: أزرق عميق، ذهبي، أخضر زمردي",
-        // Character Creation Tab
-        createNewCharacter: "إنشاء شخصية جديدة",
-        characterNameLabel: "اسم الشخصية (الاسم المستعار)",
-        characterNamePlaceholder: "مثال: بطل، ساحرة، روبوت",
-        characterTraitsLabel: "صفات الشخصية (الوصف التفصيلي)",
-        characterTraitsPlaceholder: "مثال: محارب شجاع يرتدي درعًا فضيًا لامعًا، يحمل سيفًا مضيئًا، وعيناه زرقاوان متوهجتان.",
-        saveCharacter: "حفظ الشخصية",
-        characterExists: "الشخصية بهذا الاسم موجودة بالفعل. الرجاء اختيار اسم آخر أو تعديل الشخصية الموجودة.",
-        enterNameAndTraits: "الرجاء إدخال اسم الشخصية وصفاتها.",
-        characterSaved: (name) => `تم حفظ الشخصية \"${name}\" بنجاح!`,
-        characterDeleted: (name) => `تم حذف الشخصية \"${name}\" بنجاح.`,
-        savedCharacters: "الشخصيات المحفوظة",
-        noSavedCharacters: "لا توجد شخصيات محفوظة بعد.",
-        deleteButton: "حذف",
-        closeButton: "إغلاق",
-        // New LLM Features
-        enhancePromptButton: "✨ تحسين الوصف ✨",
-        enhancingPrompt: "جاري التحسين...",
-        generateCaptionButton: "✨ توليد وصف ✨",
-        generatingCaption: "جاري توليد الوصف...",
-        noCaptionGenerated: "لا يوجد وصف لهذه الصورة بعد.",
-        captionFailed: "فشل توليد الوصف."
-    },
-    en: {
-        appName: "ImageGenPro",
-        darkModeSwitch: "Toggle Mode",
-        instructionsButton: "Instructions",
-        simpleTab: "Simple",
-        advancedTab: "Advanced",
-        characterCreationTab: "Create Character",
-        imageGenerated: "Generated Images",
-        generatingImage: "Generating Image(s)...",
-        generationFailed: "Failed to generate image. Please try again.",
-        connectionError: "An error occurred while connecting to the server or during translation. Please check your internet connection.",
-        noImagesYet: "The generated image(s) will be displayed here.",
-        downloadImage: (index) => `Download Image ${index}`,
-        instructionsTitle: "Instructions",
-        instructionsSimpleTab: "Simple Tab: Use for quick image generation. Enter image description, style, and negative keywords (things you don't want in the generated image).",
-        instructionsAdvancedTab: "Advanced Tab: Offers more detailed options. You can describe the character, background, camera angle, style, and dominant color.",
-        instructionsCharacterCreationTab: "Create Character Tab: Create custom characters with unique traits. Give them an alias and description.",
-        instructionsCharacterCall: "Call Characters: In the \"Simple\" and \"Advanced\" tabs, you can call a saved character by typing @character_name in the description field. The name will be automatically replaced with the saved character's traits when generating the image.",
-        instructionsDarkMode: "Dark/Light Mode: Use the button in the top right corner to switch the site's appearance.",
-        instructionsNumImages: "Select Number of Images: You can now choose the number of images to generate (1, 2, or 4) from the dropdown menu in the \"Simple\" and \"Advanced\" tabs.",
-        instructionsDownload: "Download Images: After generating images, a \"Download Image\" button will appear below each image. Click it to save the image to your device.",
-        instructionsLanguage: "Language Toggle: Use this dropdown to switch the user interface language.",
-        instructionsPromptEnhancement: "Prompt Enhancement: Use the ✨ Enhance Prompt ✨ button next to description fields to get AI suggestions to make your prompt more detailed and creative.",
-        instructionsCaptioning: "Generate Image Description: After generating images, click the ✨ Generate Caption ✨ button below each image to get a detailed text description or creative caption for the image from AI.",
-        // Simple Tab
-        simpleDescLabel: "Image Description",
-        simpleDescPlaceholder: "E.g., A cute cat playing with a yarn ball in a sunny green garden",
-        simpleStyleLabel: "Image Style",
-        simpleStylePlaceholder: "E.g., Oil painting, digital art, hyperrealistic",
-        simpleNegativePromptLabel: "Negative Keywords (things you don't want in the image)",
-        simpleNegativePromptPlaceholder: "E.g., Blurry, dull, extra hands",
-        generateButton: "Generate Image",
-        generatingButton: "Generating...",
-        numberOfImagesLabel: "Number of Images",
-        // Advanced Tab
-        advancedCharacterDescLabel: "Character Description",
-        advancedCharacterDescPlaceholder: "Example: A brave warrior with golden armor and long hair",
-        generateRandomCharacter: "Generate Random Character",
-        advancedBackgroundDescLabel: "Background Description",
-        advancedBackgroundDescPlaceholder: "Example: An ancient forest with huge trees and dense fog",
-        generateRandomBackground: "Generate Random Background",
-        advancedAngleDescLabel: "Camera/Image Angle Description",
-        advancedAngleDescPlaceholder: "Example: Close-up shot, wide angle, from below",
-        advancedStyleLabel: "Image Style",
-        advancedStylePlaceholder: "Example: Concept art, contemporary art, digital drawing",
-        advancedDominantColorLabel: "Dominant Color in Image",
-        advancedDominantColorPlaceholder: "Example: Deep blue, golden, emerald green",
-        // Character Creation Tab
-        createNewCharacter: "Create New Character",
-        characterNameLabel: "Character Name (Alias)",
-        characterNamePlaceholder: "Example: Hero, Sorceress, Robot",
-        characterTraitsLabel: "Character Traits (Detailed Description)",
-        characterTraitsPlaceholder: "Example: A brave warrior wearing shiny silver armor, holding a glowing sword, with glowing blue eyes.",
-        saveCharacter: "Save Character",
-        characterExists: "Character with this name already exists. Please choose another name or modify the existing character.",
-        enterNameAndTraits: "Please enter character name and traits.",
-        characterSaved: (name) => `Character "${name}" saved successfully!`,
-        characterDeleted: (name) => `Character "${name}" deleted successfully.`,
-        savedCharacters: "Saved Characters",
-        noSavedCharacters: "No saved characters yet.",
-        deleteButton: "Delete",
-        closeButton: "Close",
-        // New LLM Features
-        enhancePromptButton: "✨ Enhance Prompt ✨",
-        enhancingPrompt: "Enhancing...",
-        generateCaptionButton: "✨ Generate Caption ✨",
-        generatingCaption: "Generating Caption...",
-        noCaptionGenerated: "No caption generated for this image yet.",
-        captionFailed: "Caption generation failed."
-    },
-    ja: {
-        appName: "ImageGenPro",
-        darkModeSwitch: "モード切り替え",
-        instructionsButton: "説明",
-        simpleTab: "シンプル",
-        advancedTab: "詳細",
-        characterCreationTab: "キャラクター作成",
-        imageGenerated: "生成された画像",
-        generatingImage: "画像を生成中...",
-        generationFailed: "画像の生成に失敗しました。もう一度お試しください。",
-        connectionError: "サーバーへの接続中または翻訳中にエラーが発生しました。インターネット接続を確認してください。",
-        noImagesYet: "生成された画像はここに表示されます。",
-        downloadImage: (index) => `画像 ${index} をダウンロード`,
-        instructionsTitle: "説明",
-        instructionsSimpleTab: "シンプルタブ：素早い画像生成に使用します。画像の説明、スタイル、ネガティブキーワード（生成された画像に含めたくないもの）を入力してください。",
-        instructionsAdvancedTab: "詳細タブ：より詳細なオプションを提供します。キャラクター、背景、カメラアングル、スタイル、支配的な色を記述できます。",
-        instructionsCharacterCreationTab: "キャラクター作成タブ：独自の特性を持つカスタムキャラクターを作成します。エイリアスと説明を付けてください。",
-        instructionsCharacterCall: "キャラクター呼び出し：シンプルタブと詳細タブで、@キャラクター名 を記述フィールドに入力して保存されたキャラクターを呼び出すことができます。画像生成時に名前は保存されたキャラクターの特性に自動的に置き換えられます。",
-        instructionsDarkMode: "ダーク/ライトモード：右上のボタンを使用してサイトの外観を切り替えます。",
-        instructionsNumImages: "画像数の選択：シンプルタブと詳細タブのドロップダウンメニューから、生成する画像数（1、2、または4）を選択できるようになりました。",
-        instructionsDownload: "画像のダウンロード：画像を生成した後、各画像の下に「画像をダウンロード」ボタンが表示されます。クリックして画像をデバイスに保存してください。",
-        instructionsLanguage: "言語切り替え：このドロップダウンを使用してユーザーインターフェースの言語を切り替えます。",
-        instructionsPromptEnhancement: "プロンプトの強化：記述フィールドの横にある✨ プロンプトを強化 ✨ボタンを使用して、AIから説明をより詳細かつ創造的にするための提案を取得します。",
-        instructionsCaptioning: "画像のキャプションを生成：画像を生成した後、各画像の下にある✨ キャプションを生成 ✨ボタンをクリックすると、AIから画像の詳細なテキスト説明またはクリエイティブなキャプションを取得できます。",
-        // Simple Tab
-        simpleDescLabel: "画像の説明",
-        simpleDescPlaceholder: "例：晴れた緑の庭で毛糸玉と遊ぶかわいい猫",
-        simpleStyleLabel: "画像のスタイル",
-        simpleStylePlaceholder: "例：油絵、デジタルアート、超リアル",
-        simpleNegativePromptLabel: "ネガティブキーワード（画像に含めたくないもの）",
-        simpleNegativePromptPlaceholder: "例：ぼやけた、くすんだ、余分な手",
-        generateButton: "画像を生成",
-        generatingButton: "生成中...",
-        numberOfImagesLabel: "画像数",
-        // Advanced Tab
-        advancedCharacterDescLabel: "キャラクターの説明",
-        advancedCharacterDescPlaceholder: "例：黄金の鎧と長い髪を持つ勇敢な戦士",
-        generateRandomCharacter: "ランダムなキャラクターを生成",
-        advancedBackgroundDescLabel: "背景の説明",
-        advancedBackgroundDescPlaceholder: "例：巨大な木々と深い霧に覆われた古代の森",
-        generateRandomBackground: "ランダムな背景の説明を生成",
-        advancedAngleDescLabel: "カメラ/画像アングルの説明",
-        advancedAngleDescPlaceholder: "例：クローズアップ、広角、下から",
-        advancedStyleLabel: "画像のスタイル",
-        advancedStylePlaceholder: "例：コンセプトアート、現代アート、デジタルドローイング",
-        advancedDominantColorLabel: "画像内の支配的な色",
-        advancedDominantColorPlaceholder: "例：深い青、金色、エメラルドグリーン",
-        // Character Creation Tab
-        createNewCharacter: "新しいキャラクターを作成",
-        characterNameLabel: "キャラクター名（エイリアス）",
-        characterNamePlaceholder: "例：ヒーロー、魔女、ロボット",
-        characterTraitsLabel: "キャラクターの特性（詳細な説明）",
-        characterTraitsPlaceholder: "例：光る銀色の鎧を着て、光る剣を持ち、輝く青い目をした勇敢な戦士。",
-        saveCharacter: "キャラクターを保存",
-        characterExists: "この名前のキャラクターはすでに存在します。別の名前を選択するか、既存のキャラクターを修正してください。",
-        enterNameAndTraits: "キャラクターの名前と特性を入力してください。",
-        characterSaved: (name) => `キャラクター「${name}」を正常に保存しました！`,
-        characterDeleted: (name) => `キャラクター「${name}」を正常に削除しました。`,
-        savedCharacters: "保存されたキャラクター",
-        noSavedCharacters: "まだ保存されたキャラクターはありません。",
-        deleteButton: "削除",
-        closeButton: "閉じる",
-        // New LLM Features
-        enhancePromptButton: "✨ プロンプトを強化 ✨",
-        enhancingPrompt: "強化中...",
-        generateCaptionButton: "✨ キャプションを生成 ✨",
-        generatingCaption: "キャプションを生成中...",
-        noCaptionGenerated: "この画像にはまだキャプションが生成されていません。",
-        captionFailed: "キャプションの生成に失敗しました。"
-    }
-};
-
-// Create a context for dark mode, characters, and language
-const AppContext = createContext();
-
-// App component - Main application
-const App = () => {
-    const [darkMode, setDarkMode] = useState(false);
-    const [activeTab, setActiveTab] = useState('simple'); // 'simple', 'advanced', 'characterCreation'
-    const [showInstructions, setShowInstructions] = useState(false);
-    const [characters, setCharacters] = useState(() => {
-        // Load characters from localStorage on initial load
-        try {
-            const savedCharacters = localStorage.getItem('imageGenCharacters');
-            return savedCharacters ? JSON.parse(savedCharacters) : {};
-        } catch (error) {
-            console.error("Failed to parse characters from localStorage:", error);
-            return {};
+        :root {
+            --primary: #f472b6; 
+            --bg-color: #f3f4f6;
+            --terminal-bg: #ffffff;
+            --accent: #000000;
         }
-    });
-    const [loading, setLoading] = useState(false);
-    const [generatedImageUrls, setGeneratedImageUrls] = useState([]); // Changed to array for multiple images
-    const [imageCaptions, setImageCaptions] = useState({}); // New state to store captions by image URL
-    const [errorMessage, setErrorMessage] = useState('');
-    const [numberOfImages, setNumberOfImages] = useState(1); // New state for number of images to generate
-    const [language, setLanguage] = useState('en'); // Changed default language to 'en'
 
-    // Set document language attribute for correct text direction/rendering
-    useEffect(() => {
-        document.documentElement.lang = language;
-        if (language === 'ar') {
-            document.documentElement.dir = 'rtl';
-        } else {
-            document.documentElement.dir = 'ltr';
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Tajawal', sans-serif;
+            color: var(--accent);
+            overflow: hidden;
+            transition: background-color 0.8s ease;
         }
-    }, [language]);
 
-
-    useEffect(() => {
-        // Save characters to localStorage whenever they change
-        try {
-            localStorage.setItem('imageGenCharacters', JSON.stringify(characters));
-        } catch (error) {
-            console.error("Failed to save characters to localStorage:", error);
+        .terminal-container {
+            border: 4px solid var(--accent);
+            background: var(--terminal-bg);
+            box-shadow: 12px 12px 0px rgba(0,0,0,0.1);
+            height: 80vh;
         }
-    }, [characters]);
 
-    useEffect(() => {
-        if (darkMode) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
+        .status-monitor {
+            font-family: 'VT323', monospace;
+            background: #000;
+            color: #ffffff; 
+            border: 2px solid var(--accent);
+            padding: 8px 25px;
+            font-size: 1.5rem;
+            min-width: 120px;
+            text-align: center;
         }
-    }, [darkMode]);
 
-    // Function to translate text using gemini-2.0-flash
-    const translateText = async (text, targetLang = 'en') => {
-        if (!text || text.trim() === '') return text; // Don't translate empty strings
+        .retro-button {
+            border: 3px solid var(--accent);
+            background: var(--primary);
+            color: #fff;
+            font-weight: bold;
+            padding: 12px 25px;
+            box-shadow: 4px 4px 0px var(--accent);
+        }
 
-        const chatHistory = [];
-        chatHistory.push({ role: "user", parts: [{ text: `Translate the following text to ${targetLang}. Respond only with the translated text, no extra words or punctuation: "${text}"` }] });
-        const translatePayload = { contents: chatHistory };
-        const translateApiKey = ""; // Canvas will provide this in runtime
-        const translateApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${translateApiKey}`;
+        .retro-button:active:not(:disabled) {
+            box-shadow: 0px 0px 0px var(--accent);
+            transform: translate(4px, 4px);
+        }
 
-        try {
-            const translateResponse = await fetch(translateApiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(translatePayload)
-            });
-            const translateResult = await translateResponse.json();
+        .chat-canvas {
+            background-image: radial-gradient(#00000010 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
 
-            if (translateResult.candidates && translateResult.candidates.length > 0 &&
-                translateResult.candidates[0].content && translateResult.candidates[0].content.parts &&
-                translateResult.candidates[0].content.parts.length > 0) {
-                return translateResult.candidates[0].content.parts[0].text.trim();
+        .bubble {
+            border: 2px solid var(--accent);
+            padding: 12px 16px;
+            max-width: 85%;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.05);
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .bubble-user {
+            background: #ffffff;
+            align-self: flex-start;
+            border-style: dashed;
+        }
+
+        .bubble-bot {
+            background: #ffffff;
+            align-self: flex-end;
+            border-style: solid;
+        }
+
+        .bubble strong { font-weight: bold; color: #be185d; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb { background: #000; border-radius: 0px; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="mb-6">
+        <div id="emotion-status" class="status-monitor">
+            NORMAL
+        </div>
+    </div>
+
+    <div class="w-full max-w-2xl terminal-container flex flex-col">
+        <div class="bg-black text-white p-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div id="active-led" class="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span id="ai-name-display" class="font-bold text-xs uppercase tracking-widest text-pink-400">تحميل...</span>
+            </div>
+        </div>
+
+        <div id="chat-box" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 chat-canvas"></div>
+
+        <div class="p-4 border-t-4 border-black bg-white">
+            <div class="flex gap-2">
+                <input id="user-msg" type="text" placeholder="اكتب لرفيقتك..." 
+                    class="flex-1 p-3 border-2 border-black focus:outline-none focus:ring-2 focus:ring-pink-300"
+                    onkeypress="if(event.key === 'Enter') handleExecution()">
+                <button id="exec-btn" onclick="handleExecution()" class="retro-button">إرسال</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let aiName = "";
+        let chatHistory = [];
+
+        window.onload = () => {
+            aiName = prompt("ماذا تريد أن تسمي رفيقتك؟") || "شيري";
+            document.getElementById('ai-name-display').innerText = aiName;
+            
+            const systemPrompt = `أنتِ ${aiName}، رفيقة لطيفة.
+            قاعدة تقنية مطلقة: يجب أن يتضمن ردك كود الشعور فقط وهو: ha أو sa أو an.
+            - ha = سعيد
+            - sa = حزين
+            - an = غاضب
+            ضعي الكود في أي مكان، سأقوم أنا بإخفائه. تحدثي بلهجة ودودة جداً وبسيطة.`;
+            
+            chatHistory.push({ role: "system", content: systemPrompt });
+            appendBubble('bot', `هيهي.. أهلاً بك! أنا **${aiName}**.. سعيدة جداً بوجودك معي! 🌸`);
+        };
+
+        const CONFIG = {
+            GROQ: {
+                key: "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",
+                url: "https://api.groq.com/openai/v1/chat/completions",
+                model: "llama-3.3-70b-versatile"
+            },
+            GEMINI: {
+                key: "AIzaSyAqQeLvupdu69LOHsFx6PR2txK6OQUx-MM",
+                url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+            }
+        };
+
+        async function handleExecution() {
+            const input = document.getElementById('user-msg');
+            const text = input.value.trim();
+            if (!text) return;
+
+            setUIState(true);
+            appendBubble('user', text);
+            input.value = '';
+            chatHistory.push({ role: "user", content: text });
+
+            let reply = await executeGroq() || await executeGemini();
+
+            if (reply) {
+                processResponse(reply);
             } else {
-                console.warn("Translation failed, returning original text.");
-                return text; // Fallback to original text if translation fails
+                appendBubble('bot', "حدث خطأ.. حاولي مرة أخرى يا عزيزي 🌸");
             }
-        } catch (error) {
-            console.error("Error during translation:", error);
-            return text; // Fallback in case of API error
-        }
-    };
-
-    // New helper function to call Gemini for text generation (not translation)
-    const callGeminiFlashForTextGeneration = async (promptForLLM) => {
-        const chatHistory = [];
-        chatHistory.push({ role: "user", parts: [{ text: promptForLLM }] });
-        const payload = { contents: chatHistory };
-        const apiKey = ""; // Canvas will provide this in runtime
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const result = await response.json();
-
-            if (result.candidates && result.candidates.length > 0 &&
-                result.candidates[0].content && result.candidates[0].content.parts &&
-                result.candidates[0].content.parts.length > 0) {
-                return result.candidates[0].content.parts[0].text.trim();
-            } else {
-                console.warn("LLM text generation failed:", result);
-                throw new Error("LLM text generation failed.");
-            }
-        } catch (error) {
-            console.error("Error calling LLM for text generation:", error);
-            throw error;
-        }
-    };
-
-
-    // Function to handle image generation
-    const generateImage = async (prompt) => {
-        setLoading(true);
-        setGeneratedImageUrls([]); // Clear previous images
-        setImageCaptions({}); // Clear previous captions
-        setErrorMessage('');
-
-        // Replace character placeholders with their traits
-        let finalPrompt = prompt;
-        for (const charName in characters) {
-            const regex = new RegExp(`@${charName}`, 'g');
-            if (finalPrompt.includes(`@${charName}`)) {
-                finalPrompt = finalPrompt.replace(regex, characters[charName]);
-            }
+            setUIState(false);
         }
 
-        try {
-            // Step 1: Translate Arabic/current language prompt to English
-            // Only translate if the current language is not English
-            const englishPrompt = (language !== 'en') ? await translateText(finalPrompt, 'en') : finalPrompt;
-            console.log("Translated English Prompt for Image Gen:", englishPrompt); // For debugging
-
-            // Step 2: Send the translated English prompt to imagen-3.0-generate-002
-            const imageGenPayload = { instances: { prompt: englishPrompt }, parameters: { "sampleCount": numberOfImages } }; // Use numberOfImages here
-            const imageGenApiKey = ""; // Canvas will provide this in runtime
-            const imageGenApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${imageGenApiKey}`;
-
-            const response = await fetch(imageGenApiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(imageGenPayload)
-            });
-
-            const result = await response.json();
-
-            if (result.predictions && result.predictions.length > 0) {
-                // Map over predictions to get an array of image URLs
-                const urls = result.predictions.map(prediction => `data:image/png;base64,${prediction.bytesBase64Encoded}`);
-                setGeneratedImageUrls(urls);
-            } else {
-                setErrorMessage(translations[language].generationFailed);
-                console.error("Image generation failed:", result);
-            }
-        } catch (error) {
-            setErrorMessage(translations[language].connectionError);
-            console.error("Error during image generation or translation:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Function to handle image download
-    const handleDownloadImage = (imageUrl, fileName) => {
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    // Function to generate image caption using Gemini (multi-modal)
-    const generateImageCaption = async (imageUrl) => {
-        // Set loading state for this specific image's caption
-        setImageCaptions(prev => ({ ...prev, [imageUrl]: translations[language].generatingCaption }));
-
-        try {
-            const base64ImageData = imageUrl.split(',')[1]; // Extract base64 part
-
-            const payload = {
-                contents: [
-                    {
-                        role: "user",
-                        parts: [
-                            { text: "Describe this image in detail and suggest a creative caption. Respond only with the description/caption, no extra words or punctuation." },
-                            {
-                                inlineData: {
-                                    mimeType: "image/png", // Assuming PNG, adjust if needed
-                                    data: base64ImageData
-                                }
-                            }
-                        ]
-                    }
-                ],
-            };
-            const apiKey = ""; // Canvas will provide this in runtime
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const result = await response.json();
-
-            if (result.candidates && result.candidates.length > 0 &&
-                result.candidates[0].content && result.candidates[0].content.parts &&
-                result.candidates[0].content.parts.length > 0) {
-                let caption = result.candidates[0].content.parts[0].text.trim();
-                // Translate caption back to current language if not English
-                if (language !== 'en') {
-                    caption = await translateText(caption, language);
+        async function executeGroq() {
+            try {
+                const res = await fetch(CONFIG.GROQ.url, {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${CONFIG.GROQ.key}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({ model: CONFIG.GROQ.model, messages: chatHistory, temperature: 0.7 })
+                });
+                if (res.ok) {
+                    const d = await res.json();
+                    return d.choices[0].message.content;
                 }
-                setImageCaptions(prev => ({ ...prev, [imageUrl]: caption }));
-            } else {
-                setImageCaptions(prev => ({ ...prev, [imageUrl]: translations[language].captionFailed }));
-                console.error("Caption generation failed:", result);
-            }
-        } catch (error) {
-            setImageCaptions(prev => ({ ...prev, [imageUrl]: translations[language].captionFailed }));
-            console.error("Error generating caption:", error);
+            } catch (e) {}
+            return null;
         }
-    };
 
+        async function executeGemini() {
+            try {
+                const history = chatHistory.slice(1).map(m => ({
+                    role: m.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: m.content }]
+                }));
+                const res = await fetch(`${CONFIG.GEMINI.url}?key=${CONFIG.GEMINI.key}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        contents: history, 
+                        systemInstruction: { parts: [{ text: chatHistory[0].content }] }
+                    })
+                });
+                if (res.ok) {
+                    const d = await res.json();
+                    return d.candidates[0].content.parts[0].text;
+                }
+            } catch (e) {}
+            return null;
+        }
 
-    return (
-        <AppContext.Provider value={{
-            darkMode, setDarkMode,
-            characters, setCharacters,
-            generateImage, loading,
-            generatedImageUrls, errorMessage,
-            numberOfImages, setNumberOfImages,
-            language, setLanguage, translations, translateText,
-            generateImageCaption, imageCaptions,
-            callGeminiFlashForTextGeneration // Expose new text generation helper
-        }}>
-            <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans flex flex-col items-center">
-                {/* Header */}
-                <Header setShowInstructions={setShowInstructions} />
+        function processResponse(text) {
+            const codeRegex = /\[?(ha|sa|an)\]?/gi;
+            const match = text.match(codeRegex);
+            let currentMood = "ha";
 
-                {/* Main Content Area */}
-                <div className="w-full max-w-4xl p-4 md:p-6 lg:p-8 flex-grow">
-                    {/* Tab Navigation */}
-                    <div className="flex justify-center mb-6 bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-                        <TabButton label={translations[language].simpleTab} tabName="simple" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <TabButton label={translations[language].advancedTab} tabName="advanced" activeTab={activeTab} setActiveTab={setActiveTab} />
-                        <TabButton label={translations[language].characterCreationTab} tabName="characterCreation" activeTab={activeTab} setActiveTab={setActiveTab} />
-                    </div>
+            if (match) {
+                currentMood = match[0].replace(/[\[\]]/g, '').toLowerCase().substring(0, 2);
+            }
 
-                    {/* Tab Content */}
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        {activeTab === 'simple' && <SimpleTab />}
-                        {activeTab === 'advanced' && <AdvancedTab />}
-                        {activeTab === 'characterCreation' && <CharacterCreationTab />}
-                    </div>
+            updateMoodUI(currentMood);
 
-                    {/* Image Display Area */}
-                    <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 min-h-[300px] flex justify-center items-center flex-col">
-                        <h2 className="text-2xl font-bold mb-4 text-center">{translations[language].imageGenerated}</h2>
-                        {loading && (
-                            <div className="flex items-center justify-center p-4">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-                                <p className="ml-4 text-lg">{translations[language].generatingImage}</p>
-                            </div>
-                        )}
-                        {errorMessage && (
-                            <div className="text-red-500 text-center text-lg p-4">
-                                {errorMessage}
-                            </div>
-                        )}
-                        {generatedImageUrls.length > 0 && !loading && !errorMessage && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 w-full justify-items-center">
-                                {generatedImageUrls.map((url, index) => (
-                                    <div key={index} className="flex flex-col items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md bg-gray-50 dark:bg-gray-900 w-full max-w-xs">
-                                        <img
-                                            src={url}
-                                            alt={`Generated Image ${index + 1}`}
-                                            className="max-w-full h-auto rounded-lg shadow-md mb-4 object-contain"
-                                            style={{ maxHeight: '250px' }}
-                                        />
-                                        <button
-                                            onClick={() => handleDownloadImage(url, `generated_image_${index + 1}.png`)}
-                                            className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg transition-transform transform hover:scale-105 duration-200 mb-2"
-                                        >
-                                            {translations[language].downloadImage(index + 1)}
-                                        </button>
-                                        <button
-                                            onClick={() => generateImageCaption(url)}
-                                            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-lg transition-transform transform hover:scale-105 duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                            disabled={imageCaptions[url] === translations[language].generatingCaption}
-                                        >
-                                            {imageCaptions[url] === translations[language].generatingCaption ? translations[language].generatingCaption : translations[language].generateCaptionButton}
-                                        </button>
-                                        {imageCaptions[url] && imageCaptions[url] !== translations[language].generatingCaption && (
-                                            <p className="mt-2 text-sm text-gray-700 dark:text-gray-300 text-center">
-                                                {imageCaptions[url]}
-                                            </p>
-                                        )}
-                                         {!imageCaptions[url] && (
-                                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center">
-                                                {translations[language].noCaptionGenerated}
-                                            </p>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                        {!generatedImageUrls.length && !loading && !errorMessage && (
-                            <p className="text-gray-500 dark:text-gray-400 text-center">
-                                {translations[language].noImagesYet}
-                            </p>
-                        )}
-                    </div>
-                </div>
+            const cleanText = text.replace(codeRegex, '').trim();
+            appendBubble('bot', cleanText || "...");
+            chatHistory.push({ role: "assistant", content: text });
+        }
 
-                {/* Instructions Modal */}
-                {showInstructions && (
-                    <Modal onClose={() => setShowInstructions(false)}>
-                        <h2 className="text-2xl font-bold mb-4 text-center">{translations[language].instructionsTitle}</h2>
-                        <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
-                            <li>
-                                <span className="font-semibold">{translations[language].simpleTab}:</span> {translations[language].instructionsSimpleTab}
-                            </li>
-                            <li>
-                                <span className="font-semibold">{translations[language].advancedTab}:</span> {translations[language].instructionsAdvancedTab}
-                            </li>
-                            <li>
-                                <span className="font-semibold">{translations[language].characterCreationTab}:</span> {translations[language].instructionsCharacterCreationTab}
-                            </li>
-                            <li>
-                                <span className="font-semibold">{translations[language].instructionsCharacterCall.split(':')[0]}:</span> {translations[language].instructionsCharacterCall.split(':')[1]} <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded">@اسم_الشخصية</code>.
-                            </li>
-                            <li>
-                                <span className="font-semibold">{translations[language].darkModeSwitch}:</span> {translations[language].instructionsDarkMode}
-                            </li>
-                            <li>
-                                <span className="font-semibold">{translations[language].numberOfImagesLabel}:</span> {translations[language].instructionsNumImages}
-                            </li>
-                            <li>
-                                <span className="font-semibold">{translations[language].downloadImage('')}:</span> {translations[language].instructionsDownload}
-                            </li>
-                             <li>
-                                <span className="font-semibold">{translations[language].instructionsLanguage.split(':')[0]}:</span> {translations[language].instructionsLanguage.split(':')[1]}
-                            </li>
-                            <li>
-                                <span className="font-semibold">{translations[language].enhancePromptButton.split('✨')[0].trim()}:</span> {translations[language].instructionsPromptEnhancement}
-                            </li>
-                            <li>
-                                <span className="font-semibold">{translations[language].generateCaptionButton.split('✨')[0].trim()}:</span> {translations[language].instructionsCaptioning}
-                            </li>
-                        </ul>
-                        <div className="flex justify-center mt-6">
-                            <button
-                                onClick={() => setShowInstructions(false)}
-                                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-lg transition-transform transform hover:scale-105 duration-200"
-                            >
-                                {translations[language].closeButton}
-                            </button>
-                        </div>
-                    </Modal>
-                )}
-            </div>
-        </AppContext.Provider>
-    );
-};
+        function updateMoodUI(mood) {
+            const statusBox = document.getElementById('emotion-status');
+            let color = "#f3f4f6";
+            let label = "NORMAL";
 
-// Header Component
-const Header = ({ setShowInstructions }) => {
-    const { darkMode, setDarkMode, language, setLanguage, translations } = useContext(AppContext);
-    return (
-        <header className="w-full bg-indigo-600 dark:bg-indigo-800 text-white p-4 shadow-md flex justify-between items-center rounded-b-lg">
-            <div className="text-3xl font-extrabold tracking-tight">
-                {translations[language].appName}
-            </div>
-            <div className="flex items-center space-x-4">
-                {/* Dark/Light Mode Toggle */}
-                <button
-                    onClick={() => setDarkMode(!darkMode)}
-                    className="p-2 rounded-full bg-indigo-700 dark:bg-indigo-900 hover:bg-indigo-800 dark:hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                    aria-label={translations[language].darkModeSwitch}
-                >
-                    {darkMode ? (
-                        <svg className="w-6 h-6 text-yellow-300" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
-                        </svg>
-                    ) : (
-                        <svg className="w-6 h-6 text-gray-200" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.459 4.368A5.995 5.995 0 0110 18a5.995 5.995 0 01-3.541-1.632l-.707.707a1 1 0 01-1.414-1.414l.707-.707A7.967 7.967 0 0010 16a7.967 7.967 0 005.657-2.343l.707.707a1 1 0 01-1.414 1.414l-.707-.707zM6 10a1 1 0 01-1 1H3a1 1 0 110-2h2a1 1 0 011 1zm11 0a1 1 0 01-1 1h-2a1 1 0 110-2h2a1 1 0 011 1zM10 15a1 1 0 011 1v2a1 1 0 11-2 0v-2a1 1 0 011-1zm4.95-.707a1 1 0 010 1.414l-1.414 1.414a1 1 0 01-1.414-1.414l1.414-1.414a1 1 0 011.414 0zm-9.9-9.9a1 1 0 011.414 0l1.414 1.414a1 1 0 11-1.414 1.414L3.05 4.05a1 1 0 010-1.414z"></path>
-                        </svg>
-                    )}
-                </button>
-                {/* Language Selector */}
-                <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="p-2 rounded-full bg-indigo-700 dark:bg-indigo-900 hover:bg-indigo-800 dark:hover:bg-indigo-700 text-white font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                    aria-label={translations[language].instructionsLanguage}
-                >
-                    <option value="ar">العربية</option>
-                    <option value="en">English</option>
-                    <option value="ja">日本語</option>
-                </select>
-                {/* Instructions Button (now an icon) */}
-                <button
-                    onClick={() => setShowInstructions(true)}
-                    className="p-2 rounded-full bg-indigo-700 dark:bg-indigo-900 hover:bg-indigo-800 dark:hover:bg-indigo-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-300 text-white font-semibold text-xl"
-                    aria-label={translations[language].instructionsButton}
-                >
-                    ؟
-                </button>
-            </div>
-        </header>
-    );
-};
+            if (mood === "ha") {
+                color = "#FFC9F5"; // وردي مشرق (سعيد)
+                label = "HAPPY";
+            } else if (mood === "sa") {
+                color = "#858585"; // رمادي (حزين)
+                label = "SAD";
+            } else if (mood === "an") {
+                color = "#FF7373"; // أحمر (غاضب)
+                label = "ANGRY";
+            }
 
-// Tab Button Component
-const TabButton = ({ label, tabName, activeTab, setActiveTab }) => {
-    return (
-        <button
-            onClick={() => setActiveTab(tabName)}
-            className={`py-3 px-6 text-lg font-semibold rounded-md transition-all duration-200
-                ${activeTab === tabName
-                    ? 'bg-indigo-500 text-white shadow-lg'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-        >
-            {label}
-        </button>
-    );
-};
+            document.body.style.backgroundColor = color;
+            statusBox.innerText = label;
+        }
 
-// Simple Tab Component
-const SimpleTab = () => {
-    const { generateImage, loading, numberOfImages, setNumberOfImages, language, translations, callGeminiFlashForTextGeneration, translateText } = useContext(AppContext);
-    const [description, setDescription] = useState('');
-    const [style, setStyle] = useState('');
-    const [negativePrompt, setNegativePrompt] = useState('');
-    const [loadingPromptEnhancement, setLoadingPromptEnhancement] = useState(false); // New loading state for prompt enhancement
+        function appendBubble(sender, text) {
+            const div = document.createElement('div');
+            div.className = `bubble ${sender === 'user' ? 'bubble-user' : 'bubble-bot'}`;
+            div.innerHTML = sender === 'bot' ? marked.parse(text) : text;
+            const container = document.getElementById('chat-box');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        const prompt = `${description} ${style ? `, style: ${style}` : ''}${negativePrompt ? `, negative prompt: ${negativePrompt}` : ''}`;
-        generateImage(prompt.trim());
-    };
-
-    // Function to enhance prompt using Gemini
-    const enhancePromptDescription = async () => {
-        setLoadingPromptEnhancement(true);
-        try {
-            // Send English prompt to Gemini for enhancement
-            const enhancedEnglishPrompt = await callGeminiFlashForTextGeneration(`Enhance the following image generation prompt to make it more detailed and creative: "${description}". Respond only with the enhanced prompt, no extra words or punctuation.`);
+        function setUIState(isLoading) {
+            const btn = document.getElementById('exec-btn');
+            const inp = document.getElementById('user-msg');
+            const led = document.getElementById('active-led');
             
-            // Translate the enhanced prompt back to the current language
-            let translatedEnhancedPrompt = enhancedEnglishPrompt;
-            if (language !== 'en') {
-                translatedEnhancedPrompt = await translateText(enhancedEnglishPrompt, language);
-            }
-            setDescription(translatedEnhancedPrompt.trim());
-        } catch (error) {
-            console.error("Error enhancing prompt description:", error);
-            // Optionally, set an error message in the UI
-        } finally {
-            setLoadingPromptEnhancement(false);
+            btn.disabled = isLoading;
+            inp.disabled = isLoading;
+            led.style.backgroundColor = isLoading ? "#f472b6" : "#22c55e";
         }
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-                <label htmlFor="simple-description" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {translations[language].simpleDescLabel}
-                </label>
-                <textarea
-                    id="simple-description"
-                    className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    rows="4"
-                    placeholder={translations[language].simpleDescPlaceholder}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    required
-                ></textarea>
-                <button
-                    type="button"
-                    onClick={enhancePromptDescription}
-                    className="mt-2 w-full py-2 px-4 bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold rounded-lg shadow-md transition-transform transform hover:scale-105 duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={loadingPromptEnhancement || description.trim() === ''}
-                >
-                    {loadingPromptEnhancement ? translations[language].enhancingPrompt : translations[language].enhancePromptButton}
-                </button>
-            </div>
-            <div>
-                <label htmlFor="simple-style" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {translations[language].simpleStyleLabel}
-                </label>
-                <input
-                    type="text"
-                    id="simple-style"
-                    className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    placeholder={translations[language].simpleStylePlaceholder}
-                    value={style}
-                    onChange={(e) => setStyle(e.target.value)}
-                />
-            </div>
-            <div>
-                <label htmlFor="simple-negative-prompt" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {translations[language].simpleNegativePromptLabel}
-                </label>
-                <textarea
-                    id="simple-negative-prompt"
-                    className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    rows="3"
-                    placeholder={translations[language].simpleNegativePromptPlaceholder}
-                    value={negativePrompt}
-                    onChange={(e) => setNegativePrompt(e.target.value)}
-                ></textarea>
-            </div>
-            <div>
-                <label htmlFor="num-images-simple" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {translations[language].numberOfImagesLabel}
-                </label>
-                <select
-                    id="num-images-simple"
-                    className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    value={numberOfImages}
-                    onChange={(e) => setNumberOfImages(parseInt(e.target.value))}
-                >
-                    <option value={1}>1</option>
-                    <option value={2}>2</option>
-                    <option value={4}>4</option>
-                </select>
-            </div>
-            <button
-                type="submit"
-                className="w-full py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-lg transition-transform transform hover:scale-105 duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading}
-            >
-                {loading ? translations[language].generatingButton : translations[language].generateButton}
-            </button>
-        </form>
-    );
-};
-
-// Advanced Tab Component
-const AdvancedTab = () => {
-    const { generateImage, loading, numberOfImages, setNumberOfImages, language, translations, translateText, callGeminiFlashForTextGeneration } = useContext(AppContext);
-    const [characterDesc, setCharacterDesc] = useState('');
-    const [backgroundDesc, setBackgroundDesc] = useState('');
-    const [angleDesc, setAngleDesc] = useState('');
-    const [style, setStyle] = useState('');
-    const [dominantColor, setDominantColor] = useState('');
-    const [loadingCharacterGen, setLoadingCharacterGen] = useState(false); // New state for random char gen loading
-    const [loadingBackgroundGen, setLoadingBackgroundGen] = useState(false); // New state for random background gen loading
-    const [loadingCharacterPromptEnhancement, setLoadingCharacterPromptEnhancement] = useState(false); // New loading state for char prompt enhancement
-    const [loadingBackgroundPromptEnhancement, setLoadingBackgroundPromptEnhancement] = useState(false); // New loading state for background prompt enhancement
-
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        const prompt = `${characterDesc ? `Character: ${characterDesc}` : ''}
-                        ${backgroundDesc ? `, Background: ${backgroundDesc}` : ''}
-                        ${angleDesc ? `, Camera Angle: ${angleDesc}` : ''}
-                        ${style ? `, Style: ${style}` : ''}
-                        ${dominantColor ? `, Dominant Color: ${dominantColor}` : ''}`.replace(/\s,+/g, ',').trim(); // Clean up extra commas/spaces
-        generateImage(prompt);
-    };
-
-    // Function to generate random character description
-    const generateRandomCharacterDescription = async () => {
-        setLoadingCharacterGen(true);
-        try {
-            // Call LLM to GENERATE a random character description in English
-            const englishGeneratedDesc = await callGeminiFlashForTextGeneration("Generate a random detailed character description for an image, concise but descriptive. Respond only with the description, no extra words or punctuation.");
-            
-            // Translate the generated description back to the current UI language
-            let translatedDesc = englishGeneratedDesc;
-            if (language !== 'en') {
-                translatedDesc = await translateText(englishGeneratedDesc, language);
-            }
-            setCharacterDesc(translatedDesc);
-        } catch (error) {
-            console.error("Error generating random character description:", error);
-            setCharacterDesc(translations[language].captionFailed); // Use captionFailed for generic failure
-        } finally {
-            setLoadingCharacterGen(false);
-        }
-    };
-
-    // Function to generate random background description
-    const generateRandomBackgroundDescription = async () => {
-        setLoadingBackgroundGen(true);
-        try {
-            // Call LLM to GENERATE a random background description in English
-            const englishGeneratedDesc = await callGeminiFlashForTextGeneration("Generate a random detailed background description for an image, concise but descriptive. Respond only with the description, no extra words or punctuation.");
-            
-            // Translate the generated description back to the current UI language
-            let translatedDesc = englishGeneratedDesc;
-            if (language !== 'en') {
-                translatedDesc = await translateText(englishGeneratedDesc, language);
-            }
-            setBackgroundDesc(translatedDesc);
-        } catch (error) {
-            console.error("Error generating random background description:", error);
-            setBackgroundDesc(translations[language].captionFailed); // Use captionFailed for generic failure
-        } finally {
-            setLoadingBackgroundGen(false);
-        }
-    };
-
-    // Function to enhance character prompt
-    const enhanceCharacterPrompt = async () => {
-        setLoadingCharacterPromptEnhancement(true);
-        try {
-            // Call LLM to ENHANCE the character description in English
-            const enhancedEnglishPrompt = await callGeminiFlashForTextGeneration(`Enhance the following character description for image generation: "${characterDesc}". Respond only with the enhanced description, no extra words or punctuation.`);
-            
-            // Translate the enhanced prompt back to the current UI language
-            let translatedEnhancedPrompt = enhancedEnglishPrompt;
-            if (language !== 'en') {
-                translatedEnhancedPrompt = await translateText(enhancedEnglishPrompt, language);
-            }
-            setCharacterDesc(translatedEnhancedPrompt.trim());
-        } catch (error) {
-            console.error("Error enhancing character prompt:", error);
-        } finally {
-            setLoadingCharacterPromptEnhancement(false);
-        }
-    };
-
-    // Function to enhance background prompt
-    const enhanceBackgroundPrompt = async () => {
-        setLoadingBackgroundPromptEnhancement(true);
-        try {
-            // Call LLM to ENHANCE the background description in English
-            const enhancedEnglishPrompt = await callGeminiFlashForTextGeneration(`Enhance the following background description for image generation: "${backgroundDesc}". Respond only with the enhanced description, no extra words or punctuation.`);
-            
-            // Translate the enhanced prompt back to the current UI language
-            let translatedEnhancedPrompt = enhancedEnglishPrompt;
-            if (language !== 'en') {
-                translatedEnhancedPrompt = await translateText(enhancedEnglishPrompt, language);
-            }
-            setBackgroundDesc(translatedEnhancedPrompt.trim());
-        } catch (error) {
-            console.error("Error enhancing background prompt:", error);
-        } finally {
-            setLoadingBackgroundPromptEnhancement(false);
-        }
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-                <label htmlFor="advanced-character-desc" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {translations[language].advancedCharacterDescLabel}
-                </label>
-                <textarea
-                    id="advanced-character-desc"
-                    className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    rows="3"
-                    placeholder={translations[language].advancedCharacterDescPlaceholder}
-                    value={characterDesc}
-                    onChange={(e) => setCharacterDesc(e.target.value)}
-                ></textarea>
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-2">
-                    <button
-                        type="button"
-                        onClick={generateRandomCharacterDescription}
-                        className="w-full sm:w-1/2 py-2 px-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold rounded-lg shadow-md transition-transform transform hover:scale-105 duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={loadingCharacterGen}
-                    >
-                        {loadingCharacterGen ? '...' : translations[language].generateRandomCharacter}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={enhanceCharacterPrompt}
-                        className="w-full sm:w-1/2 py-2 px-4 bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold rounded-lg shadow-md transition-transform transform hover:scale-105 duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={loadingCharacterPromptEnhancement || characterDesc.trim() === ''}
-                    >
-                        {loadingCharacterPromptEnhancement ? translations[language].enhancingPrompt : translations[language].enhancePromptButton}
-                    </button>
-                </div>
-            </div>
-            <div>
-                <label htmlFor="advanced-background-desc" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {translations[language].advancedBackgroundDescLabel}
-                </label>
-                <textarea
-                    id="advanced-background-desc"
-                    className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    rows="3"
-                    placeholder={translations[language].advancedBackgroundDescPlaceholder}
-                    value={backgroundDesc}
-                    onChange={(e) => setBackgroundDesc(e.target.value)}
-                ></textarea>
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-2">
-                    <button
-                        type="button"
-                        onClick={generateRandomBackgroundDescription}
-                        className="w-full sm:w-1/2 py-2 px-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold rounded-lg shadow-md transition-transform transform hover:scale-105 duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={loadingBackgroundGen}
-                    >
-                        {loadingBackgroundGen ? '...' : translations[language].generateRandomBackground}
-                    </button>
-                     <button
-                        type="button"
-                        onClick={enhanceBackgroundPrompt}
-                        className="w-full sm:w-1/2 py-2 px-4 bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-bold rounded-lg shadow-md transition-transform transform hover:scale-105 duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={loadingBackgroundPromptEnhancement || backgroundDesc.trim() === ''}
-                    >
-                        {loadingBackgroundPromptEnhancement ? translations[language].enhancingPrompt : translations[language].enhancePromptButton}
-                    </button>
-                </div>
-            </div>
-            <div>
-                <label htmlFor="advanced-angle-desc" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {translations[language].advancedAngleDescLabel}
-                </label>
-                <input
-                    type="text"
-                    id="advanced-angle-desc"
-                    className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    placeholder={translations[language].advancedAngleDescPlaceholder}
-                    value={angleDesc}
-                    onChange={(e) => setAngleDesc(e.target.value)}
-                />
-            </div>
-            <div>
-                <label htmlFor="advanced-style" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {translations[language].advancedStyleLabel}
-                </label>
-                <input
-                    type="text"
-                    id="advanced-style"
-                    className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    placeholder={translations[language].advancedStylePlaceholder}
-                    value={style}
-                    onChange={(e) => setStyle(e.target.value)}
-                />
-            </div>
-            <div>
-                <label htmlFor="advanced-dominant-color" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {translations[language].advancedDominantColorLabel}
-                </label>
-                <input
-                    type="text"
-                    id="advanced-dominant-color"
-                    className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    placeholder={translations[language].advancedDominantColorPlaceholder}
-                    value={dominantColor}
-                    onChange={(e) => setDominantColor(e.target.value)}
-                />
-            </div>
-            <div>
-                <label htmlFor="num-images-advanced" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {translations[language].numberOfImagesLabel}
-                </label>
-                <select
-                    id="num-images-advanced"
-                    className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                    value={numberOfImages}
-                    onChange={(e) => setNumberOfImages(parseInt(e.target.value))}
-                >
-                    <option value={1}>1</option>
-                    <option value={2}>2</option>
-                    <option value={4}>4</option>
-                </select>
-            </div>
-            <button
-                type="submit"
-                className="w-full py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-lg transition-transform transform hover:scale-105 duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading}
-            >
-                {loading ? translations[language].generatingButton : translations[language].generateButton}
-            </button>
-        </form>
-    );
-};
-
-// Character Creation Tab Component
-const CharacterCreationTab = () => {
-    const { characters, setCharacters, language, translations } = useContext(AppContext);
-    const [characterName, setCharacterName] = useState('');
-    const [characterTraits, setCharacterTraits] = useState('');
-    const [message, setMessage] = useState(''); // For success/error messages
-
-    const handleSaveCharacter = (e) => {
-        e.preventDefault();
-        if (!characterName.trim() || !characterTraits.trim()) {
-            setMessage(translations[language].enterNameAndTraits);
-            return;
-        }
-        if (characters[characterName.trim()]) {
-            setMessage(translations[language].characterExists);
-            return;
-        }
-
-        setCharacters(prev => ({
-            ...prev,
-            [characterName.trim()]: characterTraits.trim()
-        }));
-        setMessage(translations[language].characterSaved(characterName));
-        setCharacterName('');
-        setCharacterTraits('');
-        setTimeout(() => setMessage(''), 3000); // Clear message after 3 seconds
-    };
-
-    const handleDeleteCharacter = (nameToDelete) => {
-        setCharacters(prev => {
-            const newCharacters = { ...prev };
-            delete newCharacters[nameToDelete];
-            return newCharacters;
-        });
-        setMessage(translations[language].characterDeleted(nameToDelete));
-        setTimeout(() => setMessage(''), 3000);
-    };
-
-    return (
-        <div className="space-y-6">
-            <form onSubmit={handleSaveCharacter} className="space-y-4 p-4 border border-indigo-200 dark:border-indigo-700 rounded-lg bg-indigo-50 dark:bg-gray-900">
-                <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-400">{translations[language].createNewCharacter}</h3>
-                <div>
-                    <label htmlFor="character-name" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {translations[language].characterNameLabel}
-                    </label>
-                    <input
-                        type="text"
-                        id="character-name"
-                        className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                        placeholder={translations[language].characterNamePlaceholder}
-                        value={characterName}
-                        onChange={(e) => setCharacterName(e.target.value)}
-                        required
-                    />
-                </div>
-                <div>
-                    <label htmlFor="character-traits" className="block text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {translations[language].characterTraitsLabel}
-                    </label>
-                    <textarea
-                        id="character-traits"
-                        className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                        rows="4"
-                        placeholder={translations[language].characterTraitsPlaceholder}
-                        value={characterTraits}
-                        onChange={(e) => setCharacterTraits(e.target.value)}
-                        required
-                    ></textarea>
-                </div>
-                <button
-                    type="submit"
-                    className="w-full py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-lg transition-transform transform hover:scale-105 duration-200"
-                >
-                    {translations[language].saveCharacter}
-                </button>
-                {message && (
-                    <div className={`p-3 rounded-lg text-center ${message.includes('بنجاح') || message.includes('successfully') || message.includes('正常に保存') ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'}`}>
-                        {message}
-                    </div>
-                )}
-            </form>
-
-            <div className="mt-8">
-                <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-4">{translations[language].savedCharacters}</h3>
-                {Object.keys(characters).length === 0 ? (
-                    <p className="text-gray-500 dark:text-gray-400 text-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg">{translations[language].noSavedCharacters}</p>
-                ) : (
-                    <ul className="space-y-4">
-                        {Object.entries(characters).map(([name, traits]) => (
-                            <li key={name} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-gray-50 dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                                <div>
-                                    <p className="font-semibold text-lg text-indigo-600 dark:text-indigo-400">
-                                        @{name}
-                                    </p>
-                                    <p className="text-gray-800 dark:text-gray-200 text-sm mt-1">
-                                        {traits}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => handleDeleteCharacter(name)}
-                                    className="mt-3 md:mt-0 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-md transition-transform transform hover:scale-105 text-sm"
-                                >
-                                    {translations[language].deleteButton}
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-        </div>
-    );
-};
-
-// Generic Modal Component
-const Modal = ({ onClose, children }) => {
-    const { language, translations } = useContext(AppContext);
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg relative">
-                <button
-                    onClick={onClose}
-                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-3xl font-bold"
-                    aria-label={translations[language].closeButton}
-                >
-                    &times;
-                </button>
-                <div className="max-h-[80vh] overflow-y-auto">
-                    {children}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-export default App;
+    </script>
+</body>
+</html>
